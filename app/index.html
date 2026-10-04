@@ -177,7 +177,7 @@ async function send(obj) {
     if (!DEV) return toast("Qurilma tanlanmagan");
     const r = await api("/api/panel/cmd", { device: DEV, cmd: obj }).catch(() => null);
     toast(r && r.ok ? "✅ Yuborildi" : "❌ Yuborilmadi");
-    setTimeout(load, 1500);
+    setTimeout(load, 2500);
   } else if (tg && tg.sendData) tg.sendData(JSON.stringify(obj));
 }
 
@@ -351,7 +351,7 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
 });
 
 render();
-if (LIVE) { load(); setInterval(load, 3000); }
+if (LIVE) { load(); setInterval(load, 60000); }  // statistika - har 1 daqiqada (buyruqdan keyin - darhol)
 </script>
 </body>
 </html>
