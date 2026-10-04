@@ -190,7 +190,7 @@ function render() {
                               : (D.t ? "Holat: " + D.t : "Ma'lumot yo'q - botda 📱 Panel tugmasini bosing");
   stats();
   const yes = v => v === true ? "✅" : v === false ? "❌" : "?";
-  $("status").innerHTML = [["🎒 Sumkada bo'sh joy", D.free == null ? "?" : D.free], ["🐾 Pet", yes(D.pet)], ["🤖 Helper", yes(D.helper)],
+  $("status").innerHTML = [["🐾 Pet", yes(D.pet)], ["🤖 Helper", yes(D.helper)],
     ["Rejim", (D.cfg || {}).dismantle_all ? "⚡ Sindirish" : "🔍 Saralash"]]
     .map(([l, v]) => `<div class="row"><span>${l}</span><span class="m">${v}</span></div>`).join("");
   const P = D.pending || [];
