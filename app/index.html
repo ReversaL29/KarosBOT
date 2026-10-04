@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Karos AutoFarm</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { --bg:#f4f4f6; --card:#ffffff; --ink:#15171c; --mut:#80838c; --line:#e7e8ec; --acc:#ff6a00; --acc2:#fff1e6;
+          --ok:#1aa251; --bad:#e0412f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121317; --card:#1c1e24; --ink:#f2f3f5; --mut:#8b8f99; --line:#2a2d35; --acc2:#3a2414; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font:15px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  .wrap { padding:16px 16px 88px; max-width:560px; margin:0 auto; }
+  .top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .pill { padding:6px 12px; border-radius:20px; background:var(--card); border:1px solid var(--line); font-size:13px; color:var(--mut); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px; }
+  h1 { font-size:24px; margin:18px 0 2px; } .sub { color:var(--mut); margin:0 0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0; }
+  .seg { display:flex; gap:8px; margin:6px 0 4px; }
+  .seg button { flex:1; padding:10px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-weight:600; }
+  .seg button.on { background:var(--ink); color:var(--card); border-color:var(--ink); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat { background:var(--bg); border-radius:12px; padding:10px 12px; }
+  .stat b { display:block; font-size:20px; } .stat span { color:var(--mut); font-size:12px; }
+  .row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:0; } .row .m { color:var(--mut); font-size:13px; }
+  .btn { display:block; width:100%; padding:13px; border:0; border-radius:14px; background:var(--acc); color:#fff; font-weight:700; font-size:15px; margin-top:8px; }
+  .btn.ghost { background:var(--acc2); color:var(--acc); }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  input[type=number] { width:90px; padding:8px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:15px; text-align:right; }
+  .sw { position:relative; width:46px; height:28px; flex:none; }
+  .sw input { display:none; } .sw i { position:absolute; inset:0; border-radius:20px; background:var(--line); transition:.2s; }
+  .sw i:after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:.2s; }
+  .sw input:checked + i { background:var(--acc); } .sw input:checked + i:after { left:21px; }
+  .tit { font-weight:700; margin:0 0 6px; } .hint { color:var(--mut); font-size:12px; margin-top:4px; }
+  .tabs { position:fixed; left:0; right:0; bottom:0; display:flex; background:var(--card); border-top:1px solid var(--line); padding:6px 4px calc(6px + env(safe-area-inset-bottom)); }
+  .tabs button { flex:1; border:0; background:none; color:var(--mut); font-size:11px; padding:4px 0; }
+  .tabs button b { display:block; font-size:20px; } .tabs button.on { color:var(--acc); }
+  .page { display:none; } .page.on { display:block; }
+  .prio li { padding:8px 0; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); }
+  .prio { list-style:none; padding:0; margin:0; } .prio button { border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:8px; width:34px; height:30px; margin-left:4px; }
+  .tg { display:grid; grid-template-columns:1fr 46px 46px; align-items:center; gap:6px; font-size:13px; padding:5px 0; }
+  .tg.h { color:var(--mut); font-size:11px; text-align:center; } .tg.h span:first-child { text-align:left; }
+  .item { padding:10px 0; border-bottom:1px solid var(--line); } .item:last-child { border-bottom:0; }
+  .item .btns { margin-top:6px; } .item .btn { padding:9px; margin:0; font-size:13px; }
+  .empty { color:var(--mut); text-align:center; padding:20px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="pill" id="state"></span>
+    <span class="pill" id="ver"></span>
+  </div>
+  <h1>Karos AutoFarm</h1>
+  <p class="sub" id="sub"></p>
+
+  <!-- RAQAMLAR -->
+  <div class="page on" id="p-stats">
+    <div class="seg"><button id="s-cur" class="on">Joriy start</button><button id="s-tot">Umumiy</button></div>
+    <div class="hint" id="since"></div>
+    <div class="card"><div class="grid" id="nums"></div></div>
+    <div class="card"><p class="tit">📦 Materiallar</p><div id="items"></div></div>
+    <div class="card"><p class="tit">Holat</p><div id="status"></div></div>
+  </div>
+
+  <!-- BOSHQARUV -->
+  <div class="page" id="p-ctl">
+    <div class="card">
+      <p class="tit">Bot</p>
+      <div class="btns"><button class="btn" data-a="start">▶ Start</button><button class="btn ghost" data-a="pause">⏸ Pause</button></div>
+      <button class="btn ghost" data-a="shot">📷 Ekran + video</button>
+    </div>
+    <div class="card">
+      <p class="tit">O'yin oynasi</p>
+      <div class="btns"><button class="btn ghost" data-a="ok">✅ OK bosish</button><button class="btn ghost" data-a="cancel">❌ Отмена bosish</button></div>
+    </div>
+    <div class="card">
+      <p class="tit">Hozir bajarish</p>
+      <div class="btns"><button class="btn ghost" data-a="inv_now">🎒 Inventar</button><button class="btn ghost" data-a="fletta_now">✨ Fletta</button></div>
+      <button class="btn ghost" data-a="refresh">🔄 Ma'lumotni yangilash</button>
+      <div class="hint">Panel ochilgan paytdagi holatni ko'rsatadi. Yangilash uchun shu tugmani bosing.</div>
+    </div>
+  </div>
+
+  <!-- SOZLAMALAR -->
+  <div class="page" id="p-set">
+    <div class="card"><p class="tit">🎒 Inventar</p>
+      <div class="row"><span>Inventar yoqilgan</span><label class="sw"><input type="checkbox" data-k="inventory_enabled"><i></i></label></div>
+      <div class="row"><span>Rejim</span><span class="seg" style="margin:0;width:180px"><button data-mode="farm">⚡ Sindirish</button><button data-mode="sort">🔍 Saralash</button></span></div>
+      <div class="row"><span>Saralash oralig'i, daqiqa</span><input type="number" step="0.5" data-k="bag_check_min"></div>
+      <div class="row"><span>Himoyalangan pastki qatorlar</span><input type="number" step="1" data-k="bag_protect_rows"></div>
+    </div>
+    <div class="card"><p class="tit">✨ Fletta</p>
+      <div class="row"><span>Avtomatik invest</span><label class="sw"><input type="checkbox" data-k="fletta_enabled"><i></i></label></div>
+      <div class="row"><span>ОФ shundan ko'p bo'lsa</span><input type="number" step="10" data-k="fletta_min_points"></div>
+      <p class="tit" style="margin-top:10px">Супер nishonlari</p>
+      <div class="tg h"><span>Bo'lim</span><span>chap</span><span>o'ng</span></div>
+      <div id="targets"></div>
+    </div>
+    <div class="card"><p class="tit">🧱 Tiqilish va joy</p>
+      <div class="row"><span>Tiqilishdan chiqarish</span><label class="sw"><input type="checkbox" data-k="stuck_enabled"><i></i></label></div>
+      <div class="row"><span>Tiqilish, soniya</span><input type="number" step="1" data-k="stuck_sec"></div>
+      <div class="row"><span>Farm joyiga qaytarish</span><label class="sw"><input type="checkbox" data-k="spot_enabled"><i></i></label></div>
+      <div class="row"><span>Radius</span><input type="number" step="0.5" data-k="spot_radius"></div>
+    </div>
+    <div class="card"><p class="tit">▶ Start va qayta kirish</p>
+      <div class="row"><span>Petni chaqirish</span><label class="sw"><input type="checkbox" data-k="resume_pet"><i></i></label></div>
+      <div class="row"><span>Helperni yoqish</span><label class="sw"><input type="checkbox" data-k="resume_helper"><i></i></label></div>
+      <div class="row"><span>Uzilishdan keyin davom etish</span><label class="sw"><input type="checkbox" data-k="auto_resume"><i></i></label></div>
+      <div class="row"><span>Chatdan statistika</span><label class="sw"><input type="checkbox" data-k="stats_enabled"><i></i></label></div>
+    </div>
+    <div class="card"><p class="tit">Ishlar ustuvorligi</p><ul class="prio" id="prio"></ul></div>
+    <button class="btn" id="save">💾 Saqlash</button>
+  </div>
+
+  <!-- BUYUMLAR -->
+  <div class="page" id="p-items">
+    <div class="card"><p class="tit">⭐ Javob kutayotgan jihozlar</p><div id="pending"></div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="on" data-p="p-stats"><b>📊</b>Raqamlar</button>
+  <button data-p="p-ctl"><b>🎮</b>Boshqaruv</button>
+  <button data-p="p-set"><b>⚙️</b>Sozlamalar</button>
+  <button data-p="p-items"><b>⭐</b>Jihozlar</button>
+</div>
+
+<script>
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+let D = {};
+try {
+  const raw = new URLSearchParams(location.search).get("d") || "";
+  const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+  D = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0))));
+} catch (e) { D = {}; }
+const $ = id => document.getElementById(id);
+const num = v => (v || 0).toLocaleString("ru-RU").replace(/,/g, " ");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function send(obj) {
+  const s = JSON.stringify(obj);
+  if (tg && tg.sendData) tg.sendData(s); else alert(s);
+}
+
+// --- sarlavha
+$("state").innerHTML = `<span class="dot" style="background:${D.run ? "var(--ok)" : "var(--bad)"}"></span>${D.run ? "Ishlayapti" : "Pauza"}`;
+$("ver").textContent = D.v ? "v" + D.v : "";
+$("sub").textContent = D.t ? "Holat: " + D.t : "Ma'lumot yo'q - botda 📊 Panel tugmasini bosing";
+
+// --- raqamlar
+function stats(which) {
+  const s = (D.st || {})[which] || {};
+  $("s-cur").classList.toggle("on", which === "cur");
+  $("s-tot").classList.toggle("on", which === "tot");
+  $("since").textContent = which === "cur" ? (D.st && D.st.start ? "Start: " + D.st.start + " dan" : "")
+                                           : (D.st && D.st.since ? "Umumiy: " + D.st.since + " dan" : "");
+  $("nums").innerHTML = [["📈 EXP", s.exp], ["💠 Fletta sarfi", s.spent], ["🔨 Sindirildi", s.dis], ["🗑 O'chirildi", s.del]]
+    .map(([l, v]) => `<div class="stat"><b>${num(v)}</b><span>${l}</span></div>`).join("");
+  const it = s.items || [];
+  $("items").innerHTML = it.length ? it.map(([n, c]) => `<div class="row"><span>${esc(n)}</span><b>${num(c)}</b></div>`).join("")
+                                   : `<div class="empty">Hozircha yo'q</div>`;
+}
+$("s-cur").onclick = () => stats("cur"); $("s-tot").onclick = () => stats("tot");
+stats("cur");
+const yes = v => v === true ? "✅" : v === false ? "❌" : "?";
+$("status").innerHTML = [["🎒 Sumkada bo'sh joy", D.free == null ? "?" : D.free], ["🐾 Pet", yes(D.pet)], ["🤖 Helper", yes(D.helper)],
+  ["Rejim", (D.cfg || {}).dismantle_all ? "⚡ Sindirish" : "🔍 Saralash"]]
+  .map(([l, v]) => `<div class="row"><span>${l}</span><span class="m">${v}</span></div>`).join("");
+
+// --- boshqaruv
+document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => send({a: b.dataset.a}));
+
+// --- sozlamalar
+const C = Object.assign({}, D.cfg || {});
+document.querySelectorAll("[data-k]").forEach(el => {
+  const k = el.dataset.k;
+  if (el.type === "checkbox") { el.checked = !!C[k]; el.onchange = () => C[k] = el.checked; }
+  else { el.value = C[k] == null ? "" : C[k]; el.oninput = () => C[k] = el.value === "" ? null : Number(el.value); }
+});
+function modeUI() {
+  document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", (b.dataset.mode === "farm") === !!C.dismantle_all));
+}
+document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { C.dismantle_all = b.dataset.mode === "farm"; modeUI(); });
+modeUI();
+const SECTIONS = D.sections || [];
+const chosen = new Set(C.fletta_targets || []);
+$("targets").innerHTML = SECTIONS.map(s => `<div class="tg"><span>${esc(s)}</span>` +
+  ["L", "R"].map(sd => `<label class="sw" style="justify-self:center"><input type="checkbox" data-t="${esc(s)}|${sd}" ${chosen.has(s + "|" + sd) ? "checked" : ""}><i></i></label>`).join("") + `</div>`).join("");
+const NAMES = {stuck: "🧱 Tiqilishdan chiqish", fletta: "✨ Fletta", buff: "🧪 Buff", inventory: "🎒 Inventar"};
+let prio = (C.task_priority || ["stuck", "fletta", "buff", "inventory"]).slice();
+function prioUI() {
+  $("prio").innerHTML = prio.map((t, i) => `<li><span>${i + 1}. ${NAMES[t] || t}</span><span><button data-u="${i}">▲</button><button data-d="${i}">▼</button></span></li>`).join("");
+  $("prio").querySelectorAll("[data-u]").forEach(b => b.onclick = () => { const i = +b.dataset.u; if (i > 0) { [prio[i - 1], prio[i]] = [prio[i], prio[i - 1]]; prioUI(); } });
+  $("prio").querySelectorAll("[data-d]").forEach(b => b.onclick = () => { const i = +b.dataset.d; if (i < prio.length - 1) { [prio[i + 1], prio[i]] = [prio[i], prio[i + 1]]; prioUI(); } });
+}
+prioUI();
+$("save").onclick = () => {
+  const ch = {};
+  Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify((D.cfg || {})[k])) ch[k] = C[k]; });
+  const ft = [...document.querySelectorAll("[data-t]")].filter(x => x.checked).map(x => x.dataset.t);
+  if (JSON.stringify(ft) !== JSON.stringify((D.cfg || {}).fletta_targets || [])) ch.fletta_targets = ft;
+  if (JSON.stringify(prio) !== JSON.stringify((D.cfg || {}).task_priority || [])) ch.task_priority = prio;
+  if (!Object.keys(ch).length) { if (tg) tg.showAlert("O'zgarish yo'q"); return; }
+  send({a: "set", c: ch});
+};
+
+// --- jihozlar
+const P = D.pending || [];
+$("pending").innerHTML = P.length ? P.map(p => `<div class="item"><b>${esc(p.name)}</b><div class="m">${esc(p.stats || "")}</div>` +
+  `<div class="btns"><button class="btn" data-dec="${esc(p.id)}" data-v="keep">✅ Kerak</button><button class="btn ghost" data-dec="${esc(p.id)}" data-v="junk">🔨 Kerakmas</button></div></div>`).join("")
+  : `<div class="empty">Javob kutayotgan jihoz yo'q</div>`;
+document.querySelectorAll("[data-dec]").forEach(b => b.onclick = () => send({a: "dec", id: b.dataset.dec, v: b.dataset.v}));
+
+// --- tablar
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === b.dataset.p));
+});
+</script>
+</body>
+</html>
