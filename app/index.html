@@ -76,6 +76,11 @@
 
   <!-- BOSHQARUV -->
   <div class="page" id="p-ctl">
+    <div class="card" id="devcard" style="display:none">
+      <p class="tit">👥 Ulangan kompyuterlar / personajlar</p>
+      <div id="devlist"></div>
+      <div class="hint">Yangi kompyuter yoki personaj: dasturda Telegram → «🔗 Ulash». Tanlangani (✅) - buyruqlar shunga boradi.</div>
+    </div>
     <div class="card">
       <p class="tit">Bot</p>
       <div class="btns"><button class="btn" data-a="start">▶ Start</button><button class="btn ghost" data-a="pause">⏸ Pause</button></div>
@@ -222,6 +227,27 @@ function devBar() {
   });
 }
 
+function devList() {
+  if (!LIVE) return;
+  $("devcard").style.display = "block";
+  $("devlist").innerHTML = devices.length ? devices.map(d => `<div class="row"><span><span class="dot" style="background:${d.online ? "var(--ok)" : "var(--mut)"}"></span>` +
+    `${d.id === DEV ? "✅ " : ""}<b>${esc(d.name)}</b> <span class="m">${d.online ? "onlayn" : "oflayn"}</span></span><span>` +
+    `<button data-pick="${d.id}" style="${btnStyle};padding:0 10px">Tanlash</button> ` +
+    `<button data-ren="${d.id}" style="${btnStyle};width:34px">✏️</button> <button data-rm="${d.id}" style="${btnStyle};width:34px">🗑</button></span></div>`).join("")
+    : `<div class="empty">Ulangan qurilma yo'q</div>`;
+  $("devlist").querySelectorAll("[data-pick]").forEach(b => b.onclick = async () => {
+    DEV = b.dataset.pick; await api("/api/panel/active", { device: DEV }).catch(() => null); toast("Tanlandi"); load(); });
+  $("devlist").querySelectorAll("[data-ren]").forEach(b => b.onclick = async () => {
+    const d = devices.find(x => x.id === b.dataset.ren); const n = prompt("Yangi nom:", d ? d.name : "");
+    if (n && n.trim()) { await api("/api/panel/device", { device: b.dataset.ren, action: "rename", name: n.trim() }).catch(() => null); load(); } });
+  $("devlist").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+    const d = devices.find(x => x.id === b.dataset.rm);
+    const go = async ok => { if (!ok) return; await api("/api/panel/device", { device: b.dataset.rm, action: "remove" }).catch(() => null);
+      if (DEV === b.dataset.rm) DEV = null; toast("Uzildi"); load(); };
+    const q = `«${d ? d.name : ""}» uzilsinmi? Qayta ulash uchun dasturda «🔗 Ulash» bosiladi.`;
+    if (tg && tg.showConfirm) tg.showConfirm(q, go); else go(confirm(q)); });
+}
+
 async function load() {
   if (!LIVE) return;
   try {
@@ -233,7 +259,7 @@ async function load() {
     D = (d && d.state) || {};
     D.age = d && d.updated ? Math.max(0, Math.floor(Date.now() / 1000) - d.updated) : null;
     if (!devices.length) $("sub").textContent = "Hali qurilma ulanmagan: dasturda Telegram → 🔗 Ulash";
-    devBar(); render();
+    devBar(); devList(); render();
   } catch (e) { $("sub").textContent = "Aloqa yo'q - qayta urinilmoqda..."; }
 }
 
