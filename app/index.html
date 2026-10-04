@@ -145,7 +145,8 @@ const API = "https://karosbot.karosbot.workers.dev";
 const $ = id => document.getElementById(id);
 const num = v => (v || 0).toLocaleString("ru-RU").replace(/,/g, " ");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const LIVE = !!(tg && tg.initData) && new URLSearchParams(location.search).get("live") === "1";
+// jonli rejim: Telegram ichida ochilgan va URL da eski usuldagi ma'lumot (d=) yo'q
+const LIVE = !!(tg && tg.initData) && !new URLSearchParams(location.search).get("d");
 
 let D = {}, DEV = null, devices = [], which = "cur", formFor = null;
 try {
