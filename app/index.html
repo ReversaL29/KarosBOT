@@ -110,7 +110,7 @@
       <div class="row"><span>Avtomatik invest</span><label class="sw"><input type="checkbox" data-k="fletta_enabled"><i></i></label></div>
       <div class="row"><span>ОФ shundan ko'p bo'lsa</span><input type="number" step="10" data-k="fletta_min_points"></div>
       <p class="tit" style="margin-top:10px">Супер nishonlari</p>
-      <div class="hint">Belgilanganlar ro'yxatdagi tartib bo'yicha uriladi - ▲▼ bilan suring.</div>
+      <div class="hint">Skillni bosing - tartibga qo'shiladi (raqam - urish navbati). Qayta bossangiz - olib tashlanadi. Har bo'limdan bittasi.</div>
       <div id="targets"></div>
     </div>
     <div class="card"><p class="tit">🧱 Tiqilish va joy</p>
@@ -277,9 +277,7 @@ function fillForm() {
     else { el.value = C[k] == null ? "" : C[k]; el.oninput = () => C[k] = el.value === "" ? null : Number(el.value); }
   });
   modeUI();
-  tOrder = (C.fletta_targets || []).slice();
-  (D.sections || []).forEach(s => ["L", "R"].forEach(sd => { const k = s + "|" + sd; if (!tOrder.includes(k)) tOrder.push(k); }));
-  tOn = new Set(C.fletta_targets || []);
+  tOrder = (C.fletta_targets || []).slice();  // tanlanganlar - urish tartibida
   targetsUI();
   prio = (C.task_priority || ["stuck", "fletta", "buff", "inventory"]).slice();
   prioUI();
@@ -289,18 +287,42 @@ function modeUI() {
 }
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { C.dismantle_all = b.dataset.mode === "farm"; modeUI(); });
 const btnStyle = "border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;height:30px";
+// Супер oynasi ko'rinishi (kompyuterdagi dasturdagidek): har bo'lim - ikki skill ikonkasi; bosish - tartibga qo'shish
+const PICKABLE = ["chosen", "free", "unknown"];
+const ST_LABEL = {chosen: "tanlangan", full: "to'lgan 0/0", locked: "tanlab bo'lmaydi", off: "boshqasi tanlandi", free: "hali urilmagan", unknown: "o'qilmagan"};
+const ST_COLOR = {chosen: "#7fd35b", full: "#c9a227", free: "var(--mut)", unknown: "var(--mut)"};
+function sState(sec, sd) {
+  const sp = D.super || {}, other = sec + "|" + (sd === "L" ? "R" : "L");
+  const lock = (sp.locked || {})[sec];
+  const st = (((sp.info || {})[sec] || {})[sd] || {}).state || "unknown";
+  if (lock && lock !== sd) return "locked";
+  if (st === "full" || st === "locked") return st;
+  if (tOrder.includes(other)) return "off";
+  return st;
+}
 function targetsUI() {
-  let n = 0;
-  $("targets").innerHTML = tOrder.map((k, i) => {
-    const [s, sd] = k.split("|"); const on = tOn.has(k); if (on) n++;
-    return `<div class="tg" style="grid-template-columns:28px 1fr 34px 34px 46px"><b style="color:var(--acc)">${on ? n + "." : ""}</b>` +
-      `<span style="${on ? "" : "color:var(--mut)"}">${esc(s)} (${sd === "L" ? "chap" : "o'ng"})</span>` +
-      `<button data-tu="${i}" style="${btnStyle}">▲</button><button data-td="${i}" style="${btnStyle}">▼</button>` +
-      `<label class="sw"><input type="checkbox" data-t="${esc(k)}" ${on ? "checked" : ""}><i></i></label></div>`;
-  }).join("");
-  $("targets").querySelectorAll("[data-t]").forEach(x => x.onchange = () => { x.checked ? tOn.add(x.dataset.t) : tOn.delete(x.dataset.t); targetsUI(); });
-  $("targets").querySelectorAll("[data-tu]").forEach(b => b.onclick = () => { const i = +b.dataset.tu; if (i > 0) { [tOrder[i - 1], tOrder[i]] = [tOrder[i], tOrder[i - 1]]; targetsUI(); } });
-  $("targets").querySelectorAll("[data-td]").forEach(b => b.onclick = () => { const i = +b.dataset.td; if (i < tOrder.length - 1) { [tOrder[i + 1], tOrder[i]] = [tOrder[i], tOrder[i + 1]]; targetsUI(); } });
+  const icons = (D.super || {}).icons || {};
+  $("targets").innerHTML = (D.sections || []).map((sec, i) => `<div style="margin:10px 0 4px;font-size:13px">${esc(sec)}</div>` +
+    `<div style="display:flex;gap:10px">` + ["L", "R"].map(sd => {
+      const k = sec + "|" + sd, st = sState(sec, sd), n = tOrder.indexOf(k) + 1, pick = PICKABLE.includes(st);
+      const ic = icons[i + sd];
+      const filt = st === "chosen" || st === "full" ? "" : "grayscale(1)";
+      const dim = st === "locked" || st === "off" ? "brightness(.45)" : st === "full" ? "brightness(.35)" : "";
+      return `<div data-sk="${esc(k)}" style="flex:1;display:flex;gap:8px;align-items:center;padding:6px;border-radius:12px;background:var(--bg);` +
+        `${pick ? "cursor:pointer" : "opacity:.85"};${n ? "outline:2px solid var(--acc)" : ""}">` +
+        `<div style="position:relative;width:44px;height:44px;flex:none">` +
+        (ic ? `<img src="data:image/png;base64,${ic}" width="44" height="44" style="border-radius:8px;filter:${filt} ${dim}">`
+            : `<div style="width:44px;height:44px;border-radius:8px;background:var(--line);display:grid;place-items:center;color:var(--mut)">?</div>`) +
+        (n ? `<b style="position:absolute;right:-4px;bottom:-4px;background:var(--acc);color:#000;border-radius:50%;width:20px;height:20px;display:grid;place-items:center;font-size:12px">${n}</b>` : "") +
+        `</div><div style="font-size:12px"><div>${sd === "L" ? "chap" : "o'ng"}</div><div style="color:${ST_COLOR[st] || "var(--mut)"}">${ST_LABEL[st]}</div></div></div>`;
+    }).join("") + `</div>`).join("");
+  $("targets").querySelectorAll("[data-sk]").forEach(el => el.onclick = () => {
+    const k = el.dataset.sk, [sec, sd] = k.split("|");
+    if (!PICKABLE.includes(sState(sec, sd))) return;
+    if (tOrder.includes(k)) tOrder = tOrder.filter(x => x !== k);
+    else tOrder = tOrder.filter(x => x.split("|")[0] !== sec).concat([k]);
+    targetsUI();
+  });
 }
 function prioUI() {
   $("prio").innerHTML = prio.map((t, i) => `<li><span>${i + 1}. ${NAMES[t] || t}</span><span><button data-u="${i}">▲</button><button data-d="${i}">▼</button></span></li>`).join("");
@@ -310,7 +332,7 @@ function prioUI() {
 $("save").onclick = () => {
   const base = D.cfg || {}, ch = {};
   Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify(base[k])) ch[k] = C[k]; });
-  const ft = tOrder.filter(k => tOn.has(k));
+  const ft = tOrder.filter(k => PICKABLE.includes(sState(...k.split("|"))));
   if (JSON.stringify(ft) !== JSON.stringify(base.fletta_targets || [])) ch.fletta_targets = ft;
   if (JSON.stringify(prio) !== JSON.stringify(base.task_priority || [])) ch.task_priority = prio;
   if (!Object.keys(ch).length) return toast("O'zgarish yo'q");
