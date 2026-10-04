@@ -78,8 +78,8 @@
   <div class="page" id="p-ctl">
     <div class="card">
       <p class="tit">Bot</p>
-      <div class="btns"><button class="btn" data-a="start">▶ Start</button><button class="btn ghost" data-a="pause">⏸ Pause</button></div>
-      <button class="btn ghost" data-a="shot">📷 Ekran + video</button>
+      <button class="btn" id="runbtn">▶ Start</button>
+      <div class="btns"><button class="btn ghost" data-a="photo">📷 Ekran</button><button class="btn ghost" data-a="video">🎬 Video</button></div>
     </div>
     <div class="card">
       <p class="tit">O'yin oynasi</p>
@@ -87,7 +87,11 @@
     </div>
     <div class="card">
       <p class="tit">Hozir bajarish</p>
-      <div class="btns"><button class="btn ghost" data-a="inv_now">🎒 Inventar</button><button class="btn ghost" data-a="fletta_now">✨ Fletta</button></div>
+      <div class="btns"><button class="btn ghost" data-do="dismantle">⚡ Sindirish</button><button class="btn ghost" data-do="sort">🔍 Saralash</button></div>
+      <div class="btns"><button class="btn ghost" data-do="fletta">✨ Fletta</button><button class="btn ghost" data-do="unstuck">🧱 Chiqarish</button></div>
+      <button class="btn ghost" data-do="buff">🧪 Buff</button>
+      <div class="hint">Bosilganda bot qilayotgan ishini to'xtatadi, kursor va oynalarni tozalaydi va shu ishni 1 marta bajaradi.
+        Sindirish - sumkani boshidan hammasini sindiradi, keraksizini o'chiradi. Saralash - keraklisini qoldirib, keraksizini sindiradi.</div>
       <button class="btn ghost" data-a="refresh">🔄 Ma'lumotni yangilash</button>
       <button class="btn ghost" data-a="logs">📄 Logni Telegram'ga yuborish</button>
       <div class="hint">Panel ochilgan paytdagi holatni ko'rsatadi. Yangilash uchun shu tugmani bosing.</div>
@@ -186,6 +190,8 @@ function render() {
   const fresh = D.age == null || D.age < 120;
   $("state").innerHTML = `<span class="dot" style="background:${!fresh ? "var(--mut)" : D.run ? "var(--ok)" : "var(--bad)"}"></span>${!fresh ? "Oflayn" : D.run ? "Ishlayapti" : "Pauza"}`;
   $("ver").textContent = D.v ? "v" + D.v : "";
+  $("runbtn").textContent = D.run ? "⏹ Stop" : "▶ Start";
+  $("runbtn").classList.toggle("ghost", !!D.run);
   $("sub").textContent = LIVE ? (D.t ? `Jonli · yangilangan: ${D.age < 5 ? "hozir" : D.age + " s oldin"}` : "Qurilmadan ma'lumot kutilmoqda...")
                               : (D.t ? "Holat: " + D.t : "Ma'lumot yo'q - botda 📱 Panel tugmasini bosing");
   stats();
@@ -269,6 +275,8 @@ async function load() {
 
 // --- boshqaruv
 document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => send({a: b.dataset.a}));
+document.querySelectorAll("[data-do]").forEach(b => b.onclick = () => send({a: "do", task: b.dataset.do}));
+$("runbtn").onclick = () => { send({a: D.run ? "pause" : "start"}); D.run = !D.run; render(); };
 
 // --- sozlamalar
 let C = {}, tOrder = [], tOn = new Set(), prio = [];
