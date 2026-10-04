@@ -32,9 +32,10 @@
   .btn.ghost { background:var(--acc2); color:var(--acc); }
   .btn { transition: transform .08s ease, filter .15s ease, background .2s ease; -webkit-tap-highlight-color: transparent; cursor:pointer; }
   .btn:active { transform: scale(.96); filter: brightness(.88); }
-  .btn.q, .btn.run { pointer-events:none; }
+  .btn.wait { pointer-events:none; opacity:.8; }
   .btn.q { background:#f2c14e33; color:#b58100; }
   .btn.run { background:var(--acc); color:#fff; animation: pulse 1.1s ease-in-out infinite; }
+  .btn .cx { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:8px; background:#00000026; font-size:12px; }
   .btn.ok { background:#1a7f3722; color:#1a7f37; }
   .btn.err { background:#b0002022; color:#b00020; }
   @keyframes pulse { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.25); } }
@@ -206,7 +207,7 @@ function btnState(sel, text, cls) {
   const b = document.querySelector(sel);
   if (!b) return;
   if (!(sel in ORIG)) ORIG[sel] = b.innerHTML;
-  b.classList.remove("q", "run", "ok", "err");
+  b.classList.remove("q", "run", "ok", "err", "wait");
   if (cls) { b.classList.add(cls); b.innerHTML = text; } else b.innerHTML = ORIG[sel];
 }
 let fastT = null;
@@ -214,27 +215,45 @@ function fastPoll() {  // buyruq kutilayotganda holat har 1.5 s da
   if (fastT) return;
   fastT = setInterval(() => { if (!Object.keys(JOBS).length) { clearInterval(fastT); fastT = null; } else load(); }, 1500);
 }
+const CANCEL = '<span class="cx">✖ Bekor qilish</span>';
 async function doTask(sel, obj) {
   const b = document.querySelector(sel);
-  if (!b || b.classList.contains("q") || b.classList.contains("run")) return;
+  if (!b || b.classList.contains("wait")) return;
+  const active = Object.entries(JOBS).find(([, j]) => j.sel === sel);
+  if (active) {  // navbatda / bajarilyapti -> ikkinchi bosish = bekor qilish
+    haptic();
+    active[1].cancel = true;
+    btnState(sel, "⏳ Bekor qilinmoqda…", "q");
+    b.classList.add("wait");
+    send({ a: "job_cancel", id: active[0] }, true);
+    fastPoll();
+    return;
+  }
   haptic();
   const jid = Math.random().toString(36).slice(2, 10);
   btnState(sel, "⏳ Yuborilmoqda…", "q");
+  b.classList.add("wait");
   if (!LIVE) { send(obj); return; }
   const ok = await send(Object.assign({ jid }, obj), true);
   if (!ok) { btnState(sel, "❌ Yuborilmadi", "err"); haptic("err"); setTimeout(() => btnState(sel), 2500); return; }
   JOBS[jid] = { sel, t: Date.now() };
-  btnState(sel, "⏳ Navbatda…", "q");
+  btnState(sel, "⏳ Navbatda" + CANCEL, "q");
   fastPoll();
 }
 function syncJobs() {
   const list = D.jobs || [];
   for (const [jid, j] of Object.entries(JOBS)) {
     const s = list.find(x => x.id === jid);
-    if (s && s.st === "running") btnState(j.sel, "▶ Bajarilmoqda…", "run");
-    else if (s && (s.st === "done" || s.st === "error")) {
+    if (j.cancel && !(s && ["done", "error", "cancelled"].includes(s.st))) {
+      btnState(j.sel, "⏳ Bekor qilinmoqda…", "q");
+      const el = document.querySelector(j.sel); if (el) el.classList.add("wait");
+    } else if (s && s.st === "running") btnState(j.sel, "▶ Bajarilyapti" + CANCEL, "run");
+    else if (s && s.st === "cancelling") {
+      btnState(j.sel, "⏳ Bekor qilinmoqda…", "q");
+      const el = document.querySelector(j.sel); if (el) el.classList.add("wait");
+    } else if (s && (s.st === "done" || s.st === "error" || s.st === "cancelled")) {
       const ok = s.st === "done";
-      btnState(j.sel, ok ? "✅ Bajarildi" : "❌ Bajarilmadi", ok ? "ok" : "err");
+      btnState(j.sel, ok ? "✅ Bajarildi" : s.st === "cancelled" ? "✖ Bekor qilindi" : "❌ Bajarilmadi", ok ? "ok" : "err");
       haptic(ok ? "ok" : "err");
       delete JOBS[jid];
       setTimeout(() => btnState(j.sel), 3500);
@@ -242,7 +261,7 @@ function syncJobs() {
       btnState(j.sel, "⚠ Javob yo'q", "err");
       delete JOBS[jid];
       setTimeout(() => btnState(j.sel), 3500);
-    } else btnState(j.sel, "⏳ Navbatda…", "q");
+    } else btnState(j.sel, "⏳ Navbatda" + CANCEL, "q");
   }
 }
 
