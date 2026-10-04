@@ -194,8 +194,11 @@ function render() {
     ["Rejim", (D.cfg || {}).dismantle_all ? "⚡ Sindirish" : "🔍 Saralash"]]
     .map(([l, v]) => `<div class="row"><span>${l}</span><span class="m">${v}</span></div>`).join("");
   const P = D.pending || [];
-  $("pending").innerHTML = P.length ? P.map(p => `<div class="item"><b>${esc(p.name)}</b><div class="m">${esc(p.stats || "")}</div>` +
-    `<div class="btns"><button class="btn" data-dec="${esc(p.id)}" data-v="keep">✅ Kerak</button><button class="btn ghost" data-dec="${esc(p.id)}" data-v="junk">🔨 Kerakmas</button></div></div>`).join("")
+  $("pending").innerHTML = P.length ? P.map(p => `<div class="item" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">` +
+    (p.thumb ? `<img src="data:image/png;base64,${p.thumb}" width="40" height="40" style="border-radius:8px;flex:none">` : "") +
+    `<div style="flex:1;min-width:0"><b>${p.name && p.name !== "?" ? esc(p.name) : "❓ O'qilmagan buyum"}</b>` +
+    `<div class="m">${p.cell ? p.cell + "-katak" : ""}${p.why ? " · " + esc(p.why) : ""}</div><div class="m">${esc(p.stats || "")}</div></div>` +
+    `<div class="btns" style="width:100%"><button class="btn" data-dec="${esc(p.id)}" data-v="keep">✅ Kerak</button><button class="btn ghost" data-dec="${esc(p.id)}" data-v="junk">🔨 Kerakmas</button></div></div>`).join("")
     : `<div class="empty">Javob kutayotgan jihoz yo'q</div>`;
   document.querySelectorAll("[data-dec]").forEach(b => b.onclick = () => send({a: "dec", id: b.dataset.dec, v: b.dataset.v}));
   if (formFor !== DEV || !LIVE) { fillForm(); formFor = DEV; }  // tahrir paytida forma ustidan yozilmasin
