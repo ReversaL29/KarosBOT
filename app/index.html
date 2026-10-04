@@ -30,6 +30,14 @@
   .row:last-child { border-bottom:0; } .row .m { color:var(--mut); font-size:13px; }
   .btn { display:block; width:100%; padding:13px; border:0; border-radius:14px; background:var(--acc); color:#fff; font-weight:700; font-size:15px; margin-top:8px; }
   .btn.ghost { background:var(--acc2); color:var(--acc); }
+  .btn { transition: transform .08s ease, filter .15s ease, background .2s ease; -webkit-tap-highlight-color: transparent; cursor:pointer; }
+  .btn:active { transform: scale(.96); filter: brightness(.88); }
+  .btn.q, .btn.run { pointer-events:none; }
+  .btn.q { background:#f2c14e33; color:#b58100; }
+  .btn.run { background:var(--acc); color:#fff; animation: pulse 1.1s ease-in-out infinite; }
+  .btn.ok { background:#1a7f3722; color:#1a7f37; }
+  .btn.err { background:#b0002022; color:#b00020; }
+  @keyframes pulse { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.25); } }
   .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   input[type=number] { width:90px; padding:8px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:15px; text-align:right; }
   .sw { position:relative; width:46px; height:28px; flex:none; }
@@ -178,13 +186,64 @@ async function api(path, body) {
 }
 
 // buyruq: jonli rejimda - server orqali (panel yopilmaydi), eski rejimda - Telegram.sendData
-async function send(obj) {
+async function send(obj, quiet) {
   if (LIVE) {
-    if (!DEV) return toast("Qurilma tanlanmagan");
+    if (!DEV) { toast("Qurilma tanlanmagan"); return false; }
     const r = await api("/api/panel/cmd", { device: DEV, cmd: obj }).catch(() => null);
-    toast(r && r.ok ? "✅ Yuborildi" : "❌ Yuborilmadi");
-    setTimeout(load, 2500);
+    if (!quiet) toast(r && r.ok ? "✅ Yuborildi" : "❌ Yuborilmadi");
+    setTimeout(load, 1500);
+    return !!(r && r.ok);
   } else if (tg && tg.sendData) tg.sendData(JSON.stringify(obj));
+  return true;
+}
+
+// «Hozir bajarish» tugmalari: bosilgani darhol ko'rinadi, holati tugmaning o'zida (navbatda / bajarilmoqda / bajarildi)
+const JOBS = {};   // buyruq id -> {sel, t}
+const ORIG = {};   // tugma selektori -> asl matni
+const haptic = (k) => { try { k === "ok" ? tg.HapticFeedback.notificationOccurred("success") : k === "err"
+  ? tg.HapticFeedback.notificationOccurred("error") : tg.HapticFeedback.impactOccurred("medium"); } catch (e) {} };
+function btnState(sel, text, cls) {
+  const b = document.querySelector(sel);
+  if (!b) return;
+  if (!(sel in ORIG)) ORIG[sel] = b.innerHTML;
+  b.classList.remove("q", "run", "ok", "err");
+  if (cls) { b.classList.add(cls); b.innerHTML = text; } else b.innerHTML = ORIG[sel];
+}
+let fastT = null;
+function fastPoll() {  // buyruq kutilayotganda holat har 1.5 s da
+  if (fastT) return;
+  fastT = setInterval(() => { if (!Object.keys(JOBS).length) { clearInterval(fastT); fastT = null; } else load(); }, 1500);
+}
+async function doTask(sel, obj) {
+  const b = document.querySelector(sel);
+  if (!b || b.classList.contains("q") || b.classList.contains("run")) return;
+  haptic();
+  const jid = Math.random().toString(36).slice(2, 10);
+  btnState(sel, "⏳ Yuborilmoqda…", "q");
+  if (!LIVE) { send(obj); return; }
+  const ok = await send(Object.assign({ jid }, obj), true);
+  if (!ok) { btnState(sel, "❌ Yuborilmadi", "err"); haptic("err"); setTimeout(() => btnState(sel), 2500); return; }
+  JOBS[jid] = { sel, t: Date.now() };
+  btnState(sel, "⏳ Navbatda…", "q");
+  fastPoll();
+}
+function syncJobs() {
+  const list = D.jobs || [];
+  for (const [jid, j] of Object.entries(JOBS)) {
+    const s = list.find(x => x.id === jid);
+    if (s && s.st === "running") btnState(j.sel, "▶ Bajarilmoqda…", "run");
+    else if (s && (s.st === "done" || s.st === "error")) {
+      const ok = s.st === "done";
+      btnState(j.sel, ok ? "✅ Bajarildi" : "❌ Bajarilmadi", ok ? "ok" : "err");
+      haptic(ok ? "ok" : "err");
+      delete JOBS[jid];
+      setTimeout(() => btnState(j.sel), 3500);
+    } else if (Date.now() - j.t > 120000) {  // 2 daqiqa javob yo'q - dastur o'chiq / ulanmagan
+      btnState(j.sel, "⚠ Javob yo'q", "err");
+      delete JOBS[jid];
+      setTimeout(() => btnState(j.sel), 3500);
+    } else btnState(j.sel, "⏳ Navbatda…", "q");
+  }
 }
 
 // --- ko'rinish
@@ -194,7 +253,7 @@ function render() {
   $("ver").textContent = D.v ? "v" + D.v : "";
   $("runbtn").textContent = D.run ? "⏹ Stop" : "▶ Start";
   $("combos").innerHTML = (D.combos || []).map(n => `<button class="btn ghost" data-combo="${esc(n)}">🔁 ${esc(n)}</button>`).join("");
-  $("combos").querySelectorAll("[data-combo]").forEach(b => b.onclick = () => send({a: "do", task: "combo", name: b.dataset.combo}));
+  $("combos").querySelectorAll("[data-combo]").forEach(b => b.onclick = () => doTask(`[data-combo="${CSS.escape(b.dataset.combo)}"]`, {a: "do", task: "combo", name: b.dataset.combo}));
   $("runbtn").classList.toggle("ghost", !!D.run);
   $("sub").textContent = LIVE ? (D.t ? `Jonli · yangilangan: ${D.age < 5 ? "hozir" : D.age + " s oldin"}` : "Qurilmadan ma'lumot kutilmoqda...")
                               : (D.t ? "Holat: " + D.t : "Ma'lumot yo'q - botda 📱 Panel tugmasini bosing");
@@ -273,13 +332,13 @@ async function load() {
     D = (d && d.state) || {};
     D.age = d && d.updated ? Math.max(0, Math.floor(Date.now() / 1000) - d.updated) : null;
     if (!devices.length) $("sub").textContent = "Hali qurilma ulanmagan: dasturda Telegram → 🔗 Ulash";
-    devBar(); devList(); render();
+    devBar(); devList(); render(); syncJobs();
   } catch (e) { $("sub").textContent = "Aloqa yo'q - qayta urinilmoqda..."; }
 }
 
 // --- boshqaruv
 document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => send({a: b.dataset.a}));
-document.querySelectorAll("[data-do]").forEach(b => b.onclick = () => send({a: "do", task: b.dataset.do}));
+document.querySelectorAll("[data-do]").forEach(b => b.onclick = () => doTask(`[data-do="${b.dataset.do}"]`, {a: "do", task: b.dataset.do}));
 $("runbtn").onclick = () => { send({a: D.run ? "pause" : "start"}); D.run = !D.run; render(); };
 
 // --- sozlamalar
