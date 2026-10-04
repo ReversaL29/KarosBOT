@@ -90,8 +90,10 @@
       <div class="btns"><button class="btn ghost" data-do="dismantle">⚡ Sindirish</button><button class="btn ghost" data-do="sort">🔍 Saralash</button></div>
       <div class="btns"><button class="btn ghost" data-do="fletta">✨ Fletta</button><button class="btn ghost" data-do="unstuck">🧱 Chiqarish</button></div>
       <button class="btn ghost" data-do="buff">🧪 Buff</button>
+      <div id="combos"></div>
       <div class="hint">Bosilganda bot qilayotgan ishini to'xtatadi, kursor va oynalarni tozalaydi va shu ishni 1 marta bajaradi.
-        Sindirish - sumkani boshidan hammasini sindiradi, keraksizini o'chiradi. Saralash - keraklisini qoldirib, keraksizini sindiradi.</div>
+        Sindirish - sumkani boshidan hammasini sindiradi, keraksizini o'chiradi. Saralash - keraklisini qoldirib, keraksizini sindiradi.
+        🔁 tugmalar - dasturning «Kombinatsiya» tabida yozilgan harakatlar ketma-ketligi.</div>
       <button class="btn ghost" data-a="refresh">🔄 Ma'lumotni yangilash</button>
       <button class="btn ghost" data-a="logs">📄 Logni Telegram'ga yuborish</button>
       <div class="hint">Panel ochilgan paytdagi holatni ko'rsatadi. Yangilash uchun shu tugmani bosing.</div>
@@ -191,6 +193,8 @@ function render() {
   $("state").innerHTML = `<span class="dot" style="background:${!fresh ? "var(--mut)" : D.run ? "var(--ok)" : "var(--bad)"}"></span>${!fresh ? "Oflayn" : D.run ? "Ishlayapti" : "Pauza"}`;
   $("ver").textContent = D.v ? "v" + D.v : "";
   $("runbtn").textContent = D.run ? "⏹ Stop" : "▶ Start";
+  $("combos").innerHTML = (D.combos || []).map(n => `<button class="btn ghost" data-combo="${esc(n)}">🔁 ${esc(n)}</button>`).join("");
+  $("combos").querySelectorAll("[data-combo]").forEach(b => b.onclick = () => send({a: "do", task: "combo", name: b.dataset.combo}));
   $("runbtn").classList.toggle("ghost", !!D.run);
   $("sub").textContent = LIVE ? (D.t ? `Jonli · yangilangan: ${D.age < 5 ? "hozir" : D.age + " s oldin"}` : "Qurilmadan ma'lumot kutilmoqda...")
                               : (D.t ? "Holat: " + D.t : "Ma'lumot yo'q - botda 📱 Panel tugmasini bosing");
