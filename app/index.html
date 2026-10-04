@@ -98,7 +98,7 @@
       <div class="row"><span>Avtomatik invest</span><label class="sw"><input type="checkbox" data-k="fletta_enabled"><i></i></label></div>
       <div class="row"><span>ОФ shundan ko'p bo'lsa</span><input type="number" step="10" data-k="fletta_min_points"></div>
       <p class="tit" style="margin-top:10px">Супер nishonlari</p>
-      <div class="tg h"><span>Bo'lim</span><span>chap</span><span>o'ng</span></div>
+      <div class="hint">Belgilanganlar ro'yxatdagi tartib bo'yicha uriladi - ▲▼ bilan suring.</div>
       <div id="targets"></div>
     </div>
     <div class="card"><p class="tit">🧱 Tiqilish va joy</p>
@@ -187,10 +187,26 @@ function modeUI() {
 }
 document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { C.dismantle_all = b.dataset.mode === "farm"; modeUI(); });
 modeUI();
+// Супер nishonlari: tartib = urish navbati (belgilanganlar ▲▼ bilan suriladi)
 const SECTIONS = D.sections || [];
-const chosen = new Set(C.fletta_targets || []);
-$("targets").innerHTML = SECTIONS.map(s => `<div class="tg"><span>${esc(s)}</span>` +
-  ["L", "R"].map(sd => `<label class="sw" style="justify-self:center"><input type="checkbox" data-t="${esc(s)}|${sd}" ${chosen.has(s + "|" + sd) ? "checked" : ""}><i></i></label>`).join("") + `</div>`).join("");
+let tOrder = (C.fletta_targets || []).slice();
+SECTIONS.forEach(s => ["L", "R"].forEach(sd => { const k = s + "|" + sd; if (!tOrder.includes(k)) tOrder.push(k); }));
+const tOn = new Set(C.fletta_targets || []);
+function targetsUI() {
+  let n = 0;
+  $("targets").innerHTML = tOrder.map((k, i) => {
+    const [s, sd] = k.split("|"); const on = tOn.has(k); if (on) n++;
+    return `<div class="tg" style="grid-template-columns:28px 1fr 34px 34px 46px"><b style="color:var(--acc)">${on ? n + "." : ""}</b>` +
+      `<span style="${on ? "" : "color:var(--mut)"}">${esc(s)} (${sd === "L" ? "chap" : "o'ng"})</span>` +
+      `<button data-tu="${i}" style="border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;height:30px">▲</button>` +
+      `<button data-td="${i}" style="border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;height:30px">▼</button>` +
+      `<label class="sw"><input type="checkbox" data-t="${esc(k)}" ${on ? "checked" : ""}><i></i></label></div>`;
+  }).join("");
+  $("targets").querySelectorAll("[data-t]").forEach(x => x.onchange = () => { x.checked ? tOn.add(x.dataset.t) : tOn.delete(x.dataset.t); targetsUI(); });
+  $("targets").querySelectorAll("[data-tu]").forEach(b => b.onclick = () => { const i = +b.dataset.tu; if (i > 0) { [tOrder[i - 1], tOrder[i]] = [tOrder[i], tOrder[i - 1]]; targetsUI(); } });
+  $("targets").querySelectorAll("[data-td]").forEach(b => b.onclick = () => { const i = +b.dataset.td; if (i < tOrder.length - 1) { [tOrder[i + 1], tOrder[i]] = [tOrder[i], tOrder[i + 1]]; targetsUI(); } });
+}
+targetsUI();
 const NAMES = {stuck: "🧱 Tiqilishdan chiqish", fletta: "✨ Fletta", buff: "🧪 Buff", inventory: "🎒 Inventar"};
 let prio = (C.task_priority || ["stuck", "fletta", "buff", "inventory"]).slice();
 function prioUI() {
@@ -202,7 +218,7 @@ prioUI();
 $("save").onclick = () => {
   const ch = {};
   Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify((D.cfg || {})[k])) ch[k] = C[k]; });
-  const ft = [...document.querySelectorAll("[data-t]")].filter(x => x.checked).map(x => x.dataset.t);
+  const ft = tOrder.filter(k => tOn.has(k));
   if (JSON.stringify(ft) !== JSON.stringify((D.cfg || {}).fletta_targets || [])) ch.fletta_targets = ft;
   if (JSON.stringify(prio) !== JSON.stringify((D.cfg || {}).task_priority || [])) ch.task_priority = prio;
   if (!Object.keys(ch).length) { if (tg) tg.showAlert("O'zgarish yo'q"); return; }
