@@ -282,13 +282,25 @@ function render() {
     ["Rejim", (D.cfg || {}).dismantle_all ? "⚡ Sindirish" : "🔍 Saralash"]]
     .map(([l, v]) => `<div class="row"><span>${l}</span><span class="m">${v}</span></div>`).join("");
   const P = D.pending || [];
-  $("pending").innerHTML = P.length ? P.map(p => `<div class="item" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">` +
-    (p.thumb ? `<img src="data:image/png;base64,${p.thumb}" width="40" height="40" style="border-radius:8px;flex:none">` : "") +
+  $("pending").innerHTML = P.length ? P.map(p => `<div class="item" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">` +
+    (p.thumb ? `<img src="data:image/png;base64,${p.thumb}" width="44" height="44" data-tip="${esc(p.id)}" ` +
+               `style="border-radius:8px;flex:none;cursor:pointer;${p.tip ? "outline:2px solid var(--acc)" : ""}">` : "") +
     `<div style="flex:1;min-width:0"><b>${p.name && p.name !== "?" ? esc(p.name) : "❓ O'qilmagan buyum"}</b>` +
-    `<div class="m">${p.cell ? p.cell + "-katak" : ""}${p.why ? " · " + esc(p.why) : ""}</div><div class="m">${esc(p.stats || "")}</div></div>` +
+    `<div class="m">${[p.lvl ? "ур. " + p.lvl : "", p.type ? esc(p.type) : "", p.weapon ? "qurol" : "", p.cell ? p.cell + "-katak" : ""].filter(Boolean).join(" · ")}</div>` +
+    `<div style="margin:4px 0;font-size:13px">${(p.sl || []).map(s => `• ${esc(s[0])}: <b>${s[1]}</b>`).join("<br>") || esc(p.stats || "")}</div>` +
+    (p.why ? `<div class="m">Qoida: ${esc(p.why)}</div>` : "") + `</div>` +
     `<div class="btns" style="width:100%"><button class="btn" data-dec="${esc(p.id)}" data-v="keep">✅ Kerak</button><button class="btn ghost" data-dec="${esc(p.id)}" data-v="junk">🔨 Kerakmas</button></div></div>`).join("")
     : `<div class="empty">Javob kutayotgan jihoz yo'q</div>`;
   document.querySelectorAll("[data-dec]").forEach(b => b.onclick = () => send({a: "dec", id: b.dataset.dec, v: b.dataset.v}));
+  document.querySelectorAll("[data-tip]").forEach(im => im.onclick = () => {  // ikonka - tooltip rasmi
+    const p = P.find(x => x.id === im.dataset.tip);
+    if (!p || !p.tip) return toast("Bu buyumning tooltip rasmi yo'q");
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:99;padding:16px";
+    ov.innerHTML = `<img src="data:image/jpeg;base64,${p.tip}" style="max-width:100%;max-height:90vh;border-radius:8px">`;
+    ov.onclick = () => ov.remove();
+    document.body.appendChild(ov);
+  });
   if (formFor !== DEV || !LIVE) { fillForm(); formFor = DEV; }  // tahrir paytida forma ustidan yozilmasin
 }
 
