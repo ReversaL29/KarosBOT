@@ -340,6 +340,7 @@ function devList() {
     if (tg && tg.showConfirm) tg.showConfirm(q, go); else go(confirm(q)); });
 }
 
+let lastMsg = Math.floor(Date.now() / 1000) - 60;
 async function load() {
   if (!LIVE) return;
   try {
@@ -350,6 +351,7 @@ async function load() {
     const d = devices.find(x => x.id === DEV);
     D = (d && d.state) || {};
     D.age = d && d.updated ? Math.max(0, Math.floor(Date.now() / 1000) - d.updated) : null;
+    if (D.msg && D.msg[0] > lastMsg) { lastMsg = D.msg[0]; toast(D.msg[1]); }  // buyruq natijasi (masalan, ishga tushmadi)
     if (!devices.length) $("sub").textContent = "Hali qurilma ulanmagan: dasturda Telegram → 🔗 Ulash";
     devBar(); devList(); render(); syncJobs();
   } catch (e) { $("sub").textContent = "Aloqa yo'q - qayta urinilmoqda..."; }
