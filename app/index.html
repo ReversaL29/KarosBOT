@@ -99,6 +99,8 @@
       <div class="btns"><button class="btn ghost" data-do="dismantle">⚡ Sindirish</button><button class="btn ghost" data-do="sort">🔍 Saralash</button></div>
       <div class="btns"><button class="btn ghost" data-do="fletta">✨ Fletta</button><button class="btn ghost" data-do="unstuck">🧱 Chiqarish</button></div>
       <button class="btn ghost" data-do="buff">🧪 Buff</button>
+      <div class="btns"><button class="btn ghost" data-do="pet">🐾 Pet yoqish/o'chirish</button><button class="btn ghost" data-do="helper">🤖 Helper yoqish/o'chirish</button></div>
+      <button class="btn ghost" data-do="quit">🚪 O'yindan chiqish</button>
       <div id="combos"></div>
       <div class="hint">Bosilganda bot qilayotgan ishini to'xtatadi, kursor va oynalarni tozalaydi va shu ishni 1 marta bajaradi.
         Sindirish - sumkani boshidan hammasini sindiradi, keraksizini o'chiradi. Saralash - keraklisini qoldirib, keraksizini sindiradi.
@@ -371,7 +373,12 @@ async function load() {
 
 // --- boshqaruv
 document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => send({a: b.dataset.a}));
-document.querySelectorAll("[data-do]").forEach(b => b.onclick = () => doTask(`[data-do="${b.dataset.do}"]`, {a: "do", task: b.dataset.do}));
+document.querySelectorAll("[data-do]").forEach(b => b.onclick = () => {
+  const go = () => doTask(`[data-do="${b.dataset.do}"]`, {a: "do", task: b.dataset.do});
+  if (b.dataset.do !== "quit") return go();
+  const q = "O'yindan chiqilsinmi? Bot to'xtaydi va o'zi qayta kirmaydi.";
+  if (tg && tg.showConfirm) tg.showConfirm(q, ok => ok && go()); else if (confirm(q)) go();
+});
 $("runbtn").onclick = () => { send({a: D.run ? "pause" : "start"}); D.run = !D.run; render(); };
 
 // --- sozlamalar
