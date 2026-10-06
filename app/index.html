@@ -293,7 +293,7 @@ function render() {
     `<div style="margin:4px 0;font-size:13px">${(p.sl || []).map(s => `• ${esc(s[0])}: <b>${s[1]}</b>`).join("<br>") || esc(p.stats || "")}</div>` +
     (p.why ? `<div class="m">${p.skip ? "" : "Qoida: "}${esc(p.why)}</div>` : "") +
     (p.skip && p.tip ? `<img src="data:image/jpeg;base64,${p.tip}" style="max-width:100%;border-radius:8px;margin-top:6px">` : "") + `</div>` +
-    `<div class="btns" style="width:100%"><button class="btn" data-dec="${esc(p.id)}" data-v="keep">✅ Kerak</button><button class="btn ghost" data-dec="${esc(p.id)}" data-v="junk">${p.skip ? "⏭ O'tkazib yuborish" : "🔨 Kerakmas"}</button></div></div>`).join("")
+    `<div class="btns" style="width:100%"><button class="btn" data-dec="${esc(p.id)}" data-v="keep">${p.yes ? esc(p.yes) : "✅ Kerak"}</button><button class="btn ghost" data-dec="${esc(p.id)}" data-v="junk">${p.no ? esc(p.no) : p.skip ? "⏭ O'tkazib yuborish" : "🔨 Kerakmas"}</button></div></div>`).join("")
     : `<div class="empty">Javob kutayotgan jihoz yo'q</div>`;
   document.querySelectorAll("[data-dec]").forEach(b => b.onclick = () => send({a: "dec", id: b.dataset.dec, v: b.dataset.v}));
   document.querySelectorAll("[data-tip]").forEach(im => im.onclick = () => {  // ikonka - tooltip rasmi
