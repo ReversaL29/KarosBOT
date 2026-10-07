@@ -62,6 +62,19 @@
   .devs button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
   #toast { position:fixed; left:50%; bottom:80px; transform:translateX(-50%); background:var(--ink); color:var(--card); padding:10px 16px;
            border-radius:12px; font-size:14px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:9; }
+  /* tugmalar: ustiga kelganda va bosilganda aniq bilinsin (hamma tugmalar) */
+  button { -webkit-tap-highlight-color: transparent; cursor: pointer; position: relative; overflow: hidden;
+           transition: transform .08s ease, filter .15s ease, box-shadow .15s ease, background .2s ease, color .2s ease; }
+  @media (hover: hover) {
+    .btn:hover { filter: brightness(1.15); box-shadow: inset 0 0 0 2px var(--acc), 0 4px 14px rgba(0,0,0,.35); }
+    .seg button:hover, .devs button:hover, .prio button:hover { box-shadow: inset 0 0 0 2px var(--acc); }
+    .tabs button:hover { color: var(--ink); }
+  }
+  button.press, .btn:active { transform: scale(.94); filter: brightness(.8); }
+  .tabs button.press { transform: scale(.88); }
+  .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,.45); transform: scale(0);
+            animation: rip .5s ease-out forwards; pointer-events: none; }
+  @keyframes rip { to { transform: scale(4); opacity: 0; } }
 </style>
 </head>
 <body>
@@ -464,6 +477,24 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
 });
 
 render();
+// bosish effekti: siqilish + to'lqin (ripple) + yengil titrash - telefonda ham aniq bilinadi
+document.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.disabled) return;
+  b.classList.add("press");
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height), w = document.createElement("span");
+  w.className = "ripple";
+  w.style.width = w.style.height = d + "px";
+  w.style.left = (e.clientX - r.left - d / 2) + "px";
+  w.style.top = (e.clientY - r.top - d / 2) + "px";
+  b.appendChild(w);
+  setTimeout(() => w.remove(), 550);
+  try { tg.HapticFeedback.impactOccurred("light"); } catch (x) {}
+}, { passive: true });
+["pointerup", "pointercancel", "pointerleave", "touchend"].forEach((ev) =>
+  document.addEventListener(ev, () => document.querySelectorAll("button.press").forEach((b) => b.classList.remove("press")),
+                            { passive: true }));
+
 if (LIVE) { load(); setInterval(load, 60000); }  // statistika - har 1 daqiqada (buyruqdan keyin - darhol)
 </script>
 </body>
